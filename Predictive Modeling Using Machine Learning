@@ -1,0 +1,91 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Task 2: Google Play Store Predictive Modeling Using Machine Learning\n",
+        "\n",
+        "This standalone notebook contains the machine learning pipeline designed to predict whether an app will be highly rated (> 4.0)."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "import pandas as pd\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "from sklearn.preprocessing import LabelEncoder\n",
+        "from sklearn.ensemble import RandomForestClassifier\n",
+        "from sklearn.metrics import classification_report, ConfusionMatrixDisplay, roc_curve, auc\n",
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "# Load the cleaned dataset\n",
+        "df = pd.read_csv('googleplaystore_cleaned.csv')\n",
+        "\n",
+        "# Encode categorical columns\n",
+        "le = LabelEncoder()\n",
+        "df['Category_Encoded'] = le.fit_transform(df['Category'])\n",
+        "df['Type_Encoded'] = le.fit_transform(df['Type'].astype(str))\n",
+        "df['Content_Rating_Encoded'] = le.fit_transform(df['Content Rating'].astype(str))\n",
+        "\n",
+        "# Set up features and targets\n",
+        "features = ['Reviews', 'Installs', 'Price', 'Category_Encoded', 'Type_Encoded', 'Content_Rating_Encoded']\n",
+        "X = df[features]\n",
+        "y_class = (df['Rating'] > 4.0).astype(int)\n",
+        "\n",
+        "X_train, X_test, y_train, y_test = train_test_split(X, y_class, test_size=0.2, random_state=42)\n",
+        "print(f'Train shape: {X_train.shape}, Test shape: {X_test.shape}')"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "# Train Random Forest Classifier\n",
+        "clf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)\n",
+        "clf.fit(X_train, y_train)\n",
+        "y_pred = clf.predict(X_test)\n",
+        "y_probs = clf.predict_proba(X_test)[:, 1]\n",
+        "\n",
+        "print(classification_report(y_test, y_pred))"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {},
+      "outputs": [],
+      "source": [
+        "# Model performance evaluations\n",
+        "fig, ax = plt.subplots(1, 2, figsize=(16, 6))\n",
+        "ConfusionMatrixDisplay.from_estimator(clf, X_test, y_test, ax=ax[0], cmap='Blues')\n",
+        "ax[0].set_title('Confusion Matrix')\n",
+        "\n",
+        "fpr, tpr, _ = roc_curve(y_test, y_probs)\n",
+        "roc_auc = auc(fpr, tpr)\n",
+        "ax[1].plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.2f})')\n",
+        "ax[1].plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')\n",
+        "ax[1].set_xlabel('False Positive Rate')\n",
+        "ax[1].set_ylabel('True Positive Rate')\n",
+        "ax[1].set_title('Receiver Operating Characteristic (ROC)')\n",
+        "ax[1].legend(loc='lower right')\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ]
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 2
+}
